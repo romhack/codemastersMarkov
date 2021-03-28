@@ -61,7 +61,8 @@ decompress inFileName offset outFileName= do
 decompressParser :: G.Get [Tile]
 decompressParser = do
   size <- G.getWord8
-  resultTuples <- runBitGet $ iterateNTimesM size parseBlock ([], [[]])
+  let sizeParsed = if size == 0 then 0x100 else fromIntegral size --special case to encode full chr page size
+  resultTuples <- runBitGet $ iterateNTimesM sizeParsed parseBlock ([], [[]])
   --start with empty lut and result tiles
   return $ map snd resultTuples --discard luts in result
     where
@@ -125,7 +126,7 @@ parseTile luts = iterateNTimesM 8 parseRow
             3 -> return $ (prevCol:nexts) !! code
             _ -> error "Mode overflow in parse"
 
-iterateNTimesM :: Monad m => Word8 -> (a -> m a) -> a -> m [a]
+iterateNTimesM :: Monad m => Int -> (a -> m a) -> a -> m [a]
 -- apply n times to itself, collecting results. initial value is not outputted
 iterateNTimesM 0 _ _ = return []
 iterateNTimesM n f a = do
